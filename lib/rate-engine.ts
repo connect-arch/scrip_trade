@@ -14,10 +14,10 @@ export interface RateBreakdown {
   volumeDiscount: number
   marketVolatility: number
   finalRate: number
-  confidence: number // 0-100, rate confidence score
+  confidence: number // 0-100
 }
 
-// Simulate market conditions (in production, this would fetch from a real market data API)
+// Simulated market conditions
 export function getMarketConditions(scripType: ScripType): MarketConditions {
   const baseConditions = {
     RODTEP: {
@@ -32,10 +32,8 @@ export function getMarketConditions(scripType: ScripType): MarketConditions {
     },
   }
 
-  const conditions = baseConditions[scripType]
-
   return {
-    ...conditions,
+    ...baseConditions[scripType],
     lastUpdated: new Date().toISOString(),
   }
 }
@@ -43,38 +41,48 @@ export function getMarketConditions(scripType: ScripType): MarketConditions {
 export function calculateDetailedRate(scrip: Scrip): RateBreakdown {
   const marketConditions = getMarketConditions(scrip.scripType)
 
-  // Base rate depends on scrip type
+  // ✅ SAFE quantity usage (single source)
+  const qty = scrip.quantity ?? 0
+
+  // Base rate
   const baseRate = scrip.scripType === "RODTEP" ? 0.95 : 0.93
 
-  // Demand adjustment: Higher demand = better rates
+  // Demand & supply adjustments
   const demandAdjustment = (marketConditions.demandScore - 0.5) * 0.04
-
-  // Supply adjustment: Lower supply = better rates
   const supplyAdjustment = (0.5 - marketConditions.supplyScore) * 0.03
 
-  // Volume discount: Larger quantities get better rates
+  // Volume discount
   let volumeDiscount = 0
-  if (scrip.quantity > 100000) {
+  if (qty > 100000) {
     volumeDiscount = 0.02
-  } else if (scrip.quantity > 50000) {
+  } else if (qty > 50000) {
     volumeDiscount = 0.01
-  } else if (scrip.quantity > 25000) {
+  } else if (qty > 25000) {
     volumeDiscount = 0.005
   }
 
-  // Market volatility: Higher volatility = slightly lower rates (risk adjustment)
+  // Volatility adjustment
   const marketVolatility = -marketConditions.volatilityIndex * 0.02
 
-  // Calculate final rate
+  // Final rate (bounded)
   const finalRate = Math.max(
-    0.85, // Minimum rate floor
-    Math.min(0.98, baseRate + demandAdjustment + supplyAdjustment + volumeDiscount + marketVolatility), // Maximum rate ceiling
+    0.85,
+    Math.min(
+      0.98,
+      baseRate +
+        demandAdjustment +
+        supplyAdjustment +
+        volumeDiscount +
+        marketVolatility,
+    ),
   )
 
-  // Calculate confidence score (higher volume and stable market = higher confidence)
-  const volumeConfidence = Math.min(100, (scrip.quantity / 100000) * 40 + 40)
+  // Confidence score
+  const volumeConfidence = Math.min(100, (qty / 100000) * 40 + 40)
   const marketConfidence = (1 - marketConditions.volatilityIndex) * 30
-  const confidence = Math.round(volumeConfidence + marketConfidence)
+  const confidence = Math.round(
+    Math.min(100, volumeConfidence + marketConfidence),
+  )
 
   return {
     baseRate,
@@ -83,19 +91,22 @@ export function calculateDetailedRate(scrip: Scrip): RateBreakdown {
     volumeDiscount,
     marketVolatility,
     finalRate: Math.round(finalRate * 10000) / 10000,
-    confidence: Math.min(100, confidence),
+    confidence,
   }
 }
 
-export function getHistoricalRates(scripType: ScripType): Array<{ date: string; rate: number }> {
-  // Simulate historical data for the last 30 days
+export function getHistoricalRates(
+  scripType: ScripType,
+): Array<{ date: string; rate: number }> {
   const rates: Array<{ date: string; rate: number }> = []
   const baseRate = scripType === "RODTEP" ? 0.95 : 0.93
 
   for (let i = 30; i >= 0; i--) {
     const date = new Date()
     date.setDate(date.getDate() - i)
-    const fluctuation = Math.sin(i / 5) * 0.02 + (Math.random() - 0.5) * 0.01
+    const fluctuation =
+      Math.sin(i / 5) * 0.02 + (Math.random() - 0.5) * 0.01
+
     rates.push({
       date: date.toISOString().split("T")[0],
       rate: Math.round((baseRate + fluctuation) * 10000) / 10000,
@@ -112,12 +123,17 @@ export interface RateComparison {
   savingsAmount: number
 }
 
-export function compareRate(scrip: Scrip, quotedRate: number): RateComparison {
-  // Simulate market average (in production, this would be real market data)
+export function compareRate(
+  scrip: Scrip,
+  quotedRate: number,
+): RateComparison {
+  const qty = scrip.quantity ?? 0
   const marketAverage = scrip.scripType === "RODTEP" ? 0.92 : 0.9
 
-  const advantagePercentage = ((quotedRate - marketAverage) / marketAverage) * 100
-  const savingsAmount = scrip.quantity * (quotedRate - marketAverage)
+  const advantagePercentage =
+    ((quotedRate - marketAverage) / marketAverage) * 100
+
+  const savingsAmount = qty * (quotedRate - marketAverage)
 
   return {
     currentRate: quotedRate,

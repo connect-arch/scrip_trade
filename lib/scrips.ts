@@ -15,6 +15,7 @@ export interface Scrip {
   userPhone: string
   scripType: ScripType
   amount: number
+  quantity: number
   issueDate: string
   brcStatus: BRCStatus
   documentation: string
@@ -28,10 +29,12 @@ export interface Scrip {
 
 const SCRIPS_KEY = "scrip_trade_scrips"
 
+/* -------------------- Helpers -------------------- */
+
 export function getScrips(): Scrip[] {
   if (typeof window === "undefined") return []
   const scrips = localStorage.getItem(SCRIPS_KEY)
-  return scrips ? JSON.parse(scrips) : []
+  return scrips ? (JSON.parse(scrips) as Scrip[]) : []
 }
 
 function saveScrips(scrips: Scrip[]) {
@@ -40,13 +43,19 @@ function saveScrips(scrips: Scrip[]) {
 }
 
 export function getUserScrips(userId: string): Scrip[] {
-  const scrips = getScrips()
-  return scrips.filter((scrip) => scrip.userId === userId)
+  return getScrips().filter((scrip) => scrip.userId === userId)
 }
+
+export function getScripById(id: string): Scrip | undefined {
+  return getScrips().find((scrip) => scrip.id === id)
+}
+
+/* -------------------- Create -------------------- */
 
 export function createScrip(
   scripType: ScripType,
   amount: number,
+  quantity: number,
   issueDate: string,
   brcStatus: BRCStatus,
   documentation: string,
@@ -67,6 +76,7 @@ export function createScrip(
     userPhone: user.phoneNumber,
     scripType,
     amount,
+    quantity,
     issueDate,
     brcStatus,
     documentation,
@@ -89,22 +99,23 @@ export function createScrip(
   return { success: true, scrip }
 }
 
-export function getScripById(id: string): Scrip | undefined {
-  const scrips = getScrips()
-  return scrips.find((scrip) => scrip.id === id)
-}
+/* -------------------- Admin Actions -------------------- */
 
-export function setScripRate(scripId: string, rate: number, adminNotes?: string): { success: boolean; error?: string } {
+export function setScripRate(
+  scripId: string,
+  rate: number,
+  adminNotes?: string,
+): { success: boolean; error?: string } {
   const scrips = getScrips()
-  const scripIndex = scrips.findIndex((s) => s.id === scripId)
+  const index = scrips.findIndex((s) => s.id === scripId)
 
-  if (scripIndex === -1) {
+  if (index === -1) {
     return { success: false, error: "Scrip not found" }
   }
 
-  const scrip = scrips[scripIndex]
+  const scrip = scrips[index]
 
-  scrips[scripIndex] = {
+  scrips[index] = {
     ...scrip,
     status: "quoted",
     quotedRate: rate,
@@ -125,21 +136,23 @@ export function setScripRate(scripId: string, rate: number, adminNotes?: string)
   return { success: true }
 }
 
+/* -------------------- User Actions -------------------- */
+
 export function acceptRate(scripId: string): { success: boolean; error?: string } {
   const scrips = getScrips()
-  const scripIndex = scrips.findIndex((s) => s.id === scripId)
+  const index = scrips.findIndex((s) => s.id === scripId)
 
-  if (scripIndex === -1) {
+  if (index === -1) {
     return { success: false, error: "Scrip not found" }
   }
 
-  const scrip = scrips[scripIndex]
+  const scrip = scrips[index]
 
   if (scrip.status !== "quoted") {
     return { success: false, error: "Invalid scrip status" }
   }
 
-  scrips[scripIndex] = {
+  scrips[index] = {
     ...scrip,
     status: "accepted",
     acceptedRate: scrip.quotedRate,
@@ -169,19 +182,19 @@ export function acceptRate(scripId: string): { success: boolean; error?: string 
 
 export function rejectRate(scripId: string): { success: boolean; error?: string } {
   const scrips = getScrips()
-  const scripIndex = scrips.findIndex((s) => s.id === scripId)
+  const index = scrips.findIndex((s) => s.id === scripId)
 
-  if (scripIndex === -1) {
+  if (index === -1) {
     return { success: false, error: "Scrip not found" }
   }
 
-  const scrip = scrips[scripIndex]
+  const scrip = scrips[index]
 
   if (scrip.status !== "quoted") {
     return { success: false, error: "Invalid scrip status" }
   }
 
-  scrips[scripIndex] = {
+  scrips[index] = {
     ...scrip,
     status: "rejected",
     updatedDate: new Date().toISOString(),

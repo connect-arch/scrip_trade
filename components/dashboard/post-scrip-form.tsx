@@ -30,7 +30,7 @@ export function PostScripForm({ onSuccess }: { onSuccess?: () => void }) {
     setLoading(true)
 
     try {
-      const result = createScrip(scripType, Number.parseFloat(amount), issueDate, brcStatus, documentation)
+      const result = createScrip(scripType, Number.parseFloat(amount), 0, issueDate, brcStatus, documentation)
 
       if (result.success) {
         setSuccess(true)

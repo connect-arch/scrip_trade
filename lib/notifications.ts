@@ -1,7 +1,14 @@
 export interface Notification {
   id: string
   userId: string
-  type: "rate_quoted" | "rate_accepted" | "rate_declined" | "contact_initiated" | "system"
+  type:
+  | "scrip_posted"
+  | "rate_quoted"
+  | "rate_accepted"
+  | "rate_declined"
+  | "contact_initiated"
+  | "system"
+
   title: string
   message: string
   scripId?: string
