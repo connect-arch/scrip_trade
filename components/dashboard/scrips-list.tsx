@@ -326,8 +326,8 @@ export function ScripsList({ refresh }: { refresh?: number }) {
                   <AlertDescription className="text-green-900 dark:text-green-100">
                     <p className="font-bold text-lg mb-2">Rate Accepted: {(scrip.acceptedRate * 100).toFixed(2)}%</p>
                     <p className="text-sm">
-                      Great choice! Our team will contact you at{" "}
-                      <span className="font-semibold">{scrip.userEmail}</span> within 24 hours to complete the
+                      Great choice! Our team will contact you via WhatsApp or call at{" "}
+                      <span className="font-semibold">{scrip.userPhone}</span> within 24 hours to complete the
                       transaction securely.
                     </p>
                   </AlertDescription>
